@@ -9,8 +9,9 @@ psql -U postgres
 
 create database etfdb;
 ```
-
+```docker
 docker-compose up -d --build
 docker-compose exec api bash
 
 docker logs -t containerId
+```
