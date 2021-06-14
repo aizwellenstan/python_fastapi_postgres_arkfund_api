@@ -7,7 +7,7 @@ docker exec -it timescaledb bash
 
 psql -U postgres
 
-create database etfdb;
+create database arkfund;
 ```
 ```docker
 docker-compose up -d --build

@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from .database import engine
 from .models import Base
 from .routers import v1
-from .tasks import update_etf_news, update_trades, update_holdings
+from .tasks import update_etf_news, init_update_trades, update_trades, update_holdings
 from .config import (
     OPENAPI_API_VERSION,
     OPENAPI_CONTACT,
@@ -109,4 +109,4 @@ scheduler.add_job(
 api.include_router(v1, prefix="/v1")
 APP.mount("/api", api)
 APP.mount("/static", StaticFiles(directory="app/static", html=True), name="static")
-update_trades()
+init_update_trades()

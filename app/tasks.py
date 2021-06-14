@@ -12,12 +12,15 @@ from requests.exceptions import ReadTimeout, ChunkedEncodingError
 from .database import SessionLocal, engine
 from .models import Holding, Trades, News
 from .config import (
+    INIT_TRADE_STATUS_URL,
     TRADE_STATUS_URL,
     BASE_URL_HOLDINGS,
     FUND_HOLDINGS_FILES,
     FUNDS,
     HEADERS,
 )
+import json
+import sys
 
 load_dotenv()
 
@@ -28,6 +31,100 @@ def weight_rank(df):
 
     return df
 
+def init_update_trades():
+    print("Checking for trades update...", end="", flush=True)
+    db = SessionLocal()
+    dtypes = {
+        "fund": "str",
+        "direction": "str",
+        "ticker": "str",
+        "cusip": "str",
+        "company": "str",
+        "shares": "int",
+        "etf_percent": "float",
+    }
+
+    mapping = {
+        "Date": "date",
+        "FUND": "fund",
+        "Direction": "direction",
+        "Ticker": "ticker",
+        "CUSIP": "cusip",
+        "Name": "company",
+        "Shares": "shares",
+        "% of ETF": "etf_percent",
+    }
+
+    try:
+        res = requests.get(INIT_TRADE_STATUS_URL, headers=HEADERS, timeout=10)
+        html = res.text
+        do_update = True
+    except requests.exceptions.ReadTimeout as e:
+        do_update = False
+        print(e)
+
+    if do_update:
+        if res.status_code == 200 and "no trades listed" not in html:
+            trades = json.loads(html)
+            try:
+                datestr = datetime.strptime(trades[0]['Date'], "%Y-%m-%d")
+                fund = trades[0]['FUND']
+
+                exists = (
+                    db.query(Trades.fund, Trades.date)
+                    .filter(Trades.fund == fund)
+                    .filter(Trades.date == datestr)
+                    .first()
+                )
+
+                if not exists:
+                    print(
+                        f"Trades - Found new data ({fund}), inserting to database"
+                    )
+                    df = pd.DataFrame(trades)
+                    df = df.rename(columns=mapping)
+                    df.dropna(subset = ["shares"], inplace=True)
+                    df.dropna(subset = ["etf_percent"], inplace=True)
+                    df = df.astype(
+                        {
+                            "fund": str, 
+                            "direction": str, 
+                            "ticker": str, 
+                            "cusip": str,
+                            "company": str,
+                            "shares": int,
+                            "etf_percent": float
+                        }
+                    )
+                    df = df[['date', 'fund', 'direction', 'ticker', 'cusip', 'company', 'shares', 'etf_percent']]
+                    df["date"] = pd.to_datetime(df["date"]).dt.date
+                    print(
+                        f"Trades - Found new data ({fund}), inserting to database"
+                    )
+                    # print(df.info(verbose=True))
+                    df.to_sql(
+                        "trades",
+                        engine,
+                        if_exists="append",
+                        index=False,
+                        dtype={
+                            "date": Date,
+                            "fund": String,
+                            "direction": String,
+                            "ticker": String,
+                            "cusip": String,
+                            "company": String,
+                            "shares": Integer,
+                            "etf_percent": Float,
+                        },
+                    )
+            except Exception as e:
+                print("Error on line {}".format(sys.exc_info()[-1].tb_lineno))
+                print(e)
+                # pass
+
+    db.close()
+    print("[DONE]")
 
 def update_trades():
     print("Checking for trades update...", end="", flush=True)

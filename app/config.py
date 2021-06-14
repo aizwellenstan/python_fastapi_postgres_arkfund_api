@@ -17,6 +17,7 @@ FUNDS = ["ARKK", "ARKQ", "ARKW", "ARKG", "ARKF", "ARKX", "PRNT", "IZRL"]
 
 BASE_URL_HOLDINGS = "https://ark-funds.com/wp-content/fundsiteliterature/csv/"
 BASE_URL_TRADES = "https://ark-funds.com/auto/trades/"
+INIT_TRADE_STATUS_URL = "https://raw.githubusercontent.com/KarlZhu-SE/ark-funds-monitor/master/src/rawData/mergedData.json"
 TRADE_STATUS_URL = "https://ark-funds.com/auto/getidt.php"
 
 HEADERS = {
